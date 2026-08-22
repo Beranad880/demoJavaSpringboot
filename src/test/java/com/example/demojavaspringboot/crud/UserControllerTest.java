@@ -3,6 +3,7 @@ package com.example.demojavaspringboot.crud;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -21,7 +22,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(UserController.class)
+@Import({WebConfig.class, ApiKeyInterceptor.class})
 class UserControllerTest {
+
+    private static final String API_KEY_HEADER = "X-API-KEY";
+    private static final String VALID_API_KEY = "my-secret-api-key";
 
     @Autowired
     private MockMvc mockMvc;
@@ -30,12 +35,29 @@ class UserControllerTest {
     private UserService userService;
 
     @Test
-    void getAllUsers_shouldReturnList() throws Exception {
+    void requestWithoutApiKey_shouldReturn401Unauthorized() throws Exception {
+        mockMvc.perform(get("/crud/users"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("Unauthorized"))
+                .andExpect(jsonPath("$.message").value("Neplatný nebo chybějící API klíč."));
+    }
+
+    @Test
+    void requestWithInvalidApiKey_shouldReturn401Unauthorized() throws Exception {
+        mockMvc.perform(get("/crud/users")
+                        .header(API_KEY_HEADER, "wrong-key"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("Unauthorized"));
+    }
+
+    @Test
+    void getAllUsers_withValidApiKey_shouldReturnList() throws Exception {
         User user1 = new User(1L, "Jan Novak", "jan@example.com");
         User user2 = new User(2L, "Petr Svoboda", "petr@example.com");
         when(userService.getAllUsers()).thenReturn(List.of(user1, user2));
 
-        mockMvc.perform(get("/crud/users"))
+        mockMvc.perform(get("/crud/users")
+                        .header(API_KEY_HEADER, VALID_API_KEY))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].name").value("Jan Novak"))
@@ -47,7 +69,8 @@ class UserControllerTest {
         User user = new User(1L, "Jan Novak", "jan@example.com");
         when(userService.getUserById(1L)).thenReturn(Optional.of(user));
 
-        mockMvc.perform(get("/crud/users/1"))
+        mockMvc.perform(get("/crud/users/1")
+                        .header(API_KEY_HEADER, VALID_API_KEY))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.name").value("Jan Novak"))
@@ -58,7 +81,8 @@ class UserControllerTest {
     void getUserById_whenNotFound_shouldReturn404() throws Exception {
         when(userService.getUserById(99L)).thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/crud/users/99"))
+        mockMvc.perform(get("/crud/users/99")
+                        .header(API_KEY_HEADER, VALID_API_KEY))
                 .andExpect(status().isNotFound());
     }
 
@@ -68,6 +92,7 @@ class UserControllerTest {
         when(userService.createUser(any(User.class))).thenReturn(savedUser);
 
         mockMvc.perform(post("/crud/users")
+                        .header(API_KEY_HEADER, VALID_API_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Jan Novak\",\"email\":\"jan@example.com\"}"))
                 .andExpect(status().isCreated())
@@ -82,6 +107,7 @@ class UserControllerTest {
         when(userService.updateUser(eq(1L), any(User.class))).thenReturn(Optional.of(updatedUser));
 
         mockMvc.perform(put("/crud/users/1")
+                        .header(API_KEY_HEADER, VALID_API_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Jan Aktualizovany\",\"email\":\"jan.updated@example.com\"}"))
                 .andExpect(status().isOk())
@@ -93,7 +119,8 @@ class UserControllerTest {
     void deleteUser_whenFound_shouldReturn204() throws Exception {
         when(userService.deleteUser(1L)).thenReturn(true);
 
-        mockMvc.perform(delete("/crud/users/1"))
+        mockMvc.perform(delete("/crud/users/1")
+                        .header(API_KEY_HEADER, VALID_API_KEY))
                 .andExpect(status().isNoContent());
     }
 
@@ -101,7 +128,8 @@ class UserControllerTest {
     void deleteUser_whenNotFound_shouldReturn404() throws Exception {
         when(userService.deleteUser(99L)).thenReturn(false);
 
-        mockMvc.perform(delete("/crud/users/99"))
+        mockMvc.perform(delete("/crud/users/99")
+                        .header(API_KEY_HEADER, VALID_API_KEY))
                 .andExpect(status().isNotFound());
     }
 }
