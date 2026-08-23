@@ -21,6 +21,9 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @Column(name = "order_count")
+    private Integer orderCount;
+
     public User() {
     }
 
@@ -29,10 +32,23 @@ public class User {
         this.email = email;
     }
 
+    public User(String name, String email, Integer orderCount) {
+        this.name = name;
+        this.email = email;
+        this.orderCount = orderCount;
+    }
+
     public User(Long id, String name, String email) {
         this.id = id;
         this.name = name;
         this.email = email;
+    }
+
+    public User(Long id, String name, String email, Integer orderCount) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.orderCount = orderCount;
     }
 
     public Long getId() {
@@ -59,12 +75,21 @@ public class User {
         this.email = email;
     }
 
+    public Integer getOrderCount() {
+        return orderCount;
+    }
+
+    public void setOrderCount(Integer orderCount) {
+        this.orderCount = orderCount;
+    }
+
     @Override
     public String toString() {
         return "User{" +
                 "id=" + id +
                 ", name='" + name + '\'' +
                 ", email='" + email + '\'' +
+                ", orderCount=" + orderCount +
                 '}';
     }
 }

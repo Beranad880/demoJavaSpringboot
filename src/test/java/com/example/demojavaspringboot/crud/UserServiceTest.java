@@ -28,43 +28,46 @@ class UserServiceTest {
 
     @Test
     void getAllUsers_shouldReturnAllUsers() {
-        User user = new User(1L, "Jan", "jan@example.com");
+        User user = new User(1L, "Jan", "jan@example.com", 5);
         when(userRepository.findAll()).thenReturn(List.of(user));
 
         List<User> result = userService.getAllUsers();
 
         assertEquals(1, result.size());
         assertEquals("Jan", result.get(0).getName());
+        assertEquals(5, result.get(0).getOrderCount());
     }
 
     @Test
     void getUserById_shouldReturnUser() {
-        User user = new User(1L, "Jan", "jan@example.com");
+        User user = new User(1L, "Jan", "jan@example.com", 3);
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
         Optional<User> result = userService.getUserById(1L);
 
         assertTrue(result.isPresent());
         assertEquals("jan@example.com", result.get().getEmail());
+        assertEquals(3, result.get().getOrderCount());
     }
 
     @Test
     void createUser_shouldSaveAndReturnUser() {
-        User user = new User("Jan", "jan@example.com");
-        User savedUser = new User(1L, "Jan", "jan@example.com");
+        User user = new User("Jan", "jan@example.com", 2);
+        User savedUser = new User(1L, "Jan", "jan@example.com", 2);
         when(userRepository.save(user)).thenReturn(savedUser);
 
         User result = userService.createUser(user);
 
         assertNotNull(result.getId());
         assertEquals("Jan", result.getName());
+        assertEquals(2, result.getOrderCount());
     }
 
     @Test
     void updateUser_whenUserExists_shouldUpdateAndSave() {
-        User existingUser = new User(1L, "Jan", "jan@example.com");
-        User updatedDetails = new User("Jan Novak", "jan.novak@example.com");
-        User savedUser = new User(1L, "Jan Novak", "jan.novak@example.com");
+        User existingUser = new User(1L, "Jan", "jan@example.com", 2);
+        User updatedDetails = new User("Jan Novak", "jan.novak@example.com", 10);
+        User savedUser = new User(1L, "Jan Novak", "jan.novak@example.com", 10);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
         when(userRepository.save(existingUser)).thenReturn(savedUser);
@@ -74,6 +77,7 @@ class UserServiceTest {
         assertTrue(result.isPresent());
         assertEquals("Jan Novak", result.get().getName());
         assertEquals("jan.novak@example.com", result.get().getEmail());
+        assertEquals(10, result.get().getOrderCount());
     }
 
     @Test

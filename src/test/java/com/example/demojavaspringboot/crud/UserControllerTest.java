@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -23,6 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(UserController.class)
 @Import({WebConfig.class, ApiKeyInterceptor.class})
+@TestPropertySource(properties = "app.api.key=my-secret-api-key")
 class UserControllerTest {
 
     private static final String API_KEY_HEADER = "X-API-KEY";
@@ -52,8 +54,8 @@ class UserControllerTest {
 
     @Test
     void getAllUsers_withValidApiKey_shouldReturnList() throws Exception {
-        User user1 = new User(1L, "Jan Novak", "jan@example.com");
-        User user2 = new User(2L, "Petr Svoboda", "petr@example.com");
+        User user1 = new User(1L, "Jan Novak", "jan@example.com", 3);
+        User user2 = new User(2L, "Petr Svoboda", "petr@example.com", 7);
         when(userService.getAllUsers()).thenReturn(List.of(user1, user2));
 
         mockMvc.perform(get("/crud/users")
@@ -61,12 +63,14 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].name").value("Jan Novak"))
-                .andExpect(jsonPath("$[1].name").value("Petr Svoboda"));
+                .andExpect(jsonPath("$[0].orderCount").value(3))
+                .andExpect(jsonPath("$[1].name").value("Petr Svoboda"))
+                .andExpect(jsonPath("$[1].orderCount").value(7));
     }
 
     @Test
     void getUserById_whenFound_shouldReturnUser() throws Exception {
-        User user = new User(1L, "Jan Novak", "jan@example.com");
+        User user = new User(1L, "Jan Novak", "jan@example.com", 5);
         when(userService.getUserById(1L)).thenReturn(Optional.of(user));
 
         mockMvc.perform(get("/crud/users/1")
@@ -74,7 +78,8 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.name").value("Jan Novak"))
-                .andExpect(jsonPath("$.email").value("jan@example.com"));
+                .andExpect(jsonPath("$.email").value("jan@example.com"))
+                .andExpect(jsonPath("$.orderCount").value(5));
     }
 
     @Test
@@ -88,31 +93,33 @@ class UserControllerTest {
 
     @Test
     void createUser_shouldReturnCreatedUser() throws Exception {
-        User savedUser = new User(1L, "Jan Novak", "jan@example.com");
+        User savedUser = new User(1L, "Jan Novak", "jan@example.com", 4);
         when(userService.createUser(any(User.class))).thenReturn(savedUser);
 
         mockMvc.perform(post("/crud/users")
                         .header(API_KEY_HEADER, VALID_API_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"Jan Novak\",\"email\":\"jan@example.com\"}"))
+                        .content("{\"name\":\"Jan Novak\",\"email\":\"jan@example.com\",\"orderCount\":4}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.name").value("Jan Novak"))
-                .andExpect(jsonPath("$.email").value("jan@example.com"));
+                .andExpect(jsonPath("$.email").value("jan@example.com"))
+                .andExpect(jsonPath("$.orderCount").value(4));
     }
 
     @Test
     void updateUser_whenFound_shouldReturnUpdatedUser() throws Exception {
-        User updatedUser = new User(1L, "Jan Aktualizovany", "jan.updated@example.com");
+        User updatedUser = new User(1L, "Jan Aktualizovany", "jan.updated@example.com", 8);
         when(userService.updateUser(eq(1L), any(User.class))).thenReturn(Optional.of(updatedUser));
 
         mockMvc.perform(put("/crud/users/1")
                         .header(API_KEY_HEADER, VALID_API_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"Jan Aktualizovany\",\"email\":\"jan.updated@example.com\"}"))
+                        .content("{\"name\":\"Jan Aktualizovany\",\"email\":\"jan.updated@example.com\",\"orderCount\":8}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Jan Aktualizovany"))
-                .andExpect(jsonPath("$.email").value("jan.updated@example.com"));
+                .andExpect(jsonPath("$.email").value("jan.updated@example.com"))
+                .andExpect(jsonPath("$.orderCount").value(8));
     }
 
     @Test
